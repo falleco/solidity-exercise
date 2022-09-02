@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 
 async function main() {
   // We get the contract to deploy
-  const Factory = await ethers.getContractFactory("Game");
+  const Factory = await ethers.getContractFactory("RPGGame");
 
   // We deploy the contract
   const contract = await Factory.deploy(/* ...args */);
