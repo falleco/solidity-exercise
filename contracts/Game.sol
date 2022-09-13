@@ -5,10 +5,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 
 /// @notice A contract for a RPG game using smart contracts and tons of creativity.
 /// @author falleco
-contract RPGGame is Ownable, ERC721URIStorage {
+contract RPGGame is Ownable, ERC721URIStorage, Initializable {
     using Counters for Counters.Counter;
 
     enum ActionTypes {
@@ -75,7 +77,9 @@ contract RPGGame is Ownable, ERC721URIStorage {
     mapping(uint256 => mapping(address => bool)) public RewardClaims;
     Counters.Counter private _tokenIds;
 
-    constructor() ERC721("RPG NFT", "NFT") {}
+    function initialize() external initializer{
+        ERC721("RPG NFT", "NFT");
+    }
 
     ///////////////
     // Modifiers //

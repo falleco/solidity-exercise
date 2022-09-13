@@ -1,14 +1,23 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import { faker } from "@faker-js/faker";
-import { time } from "@nomicfoundation/hardhat-network-helpers";
+
+async function deployTestFixture() {
+  const [owner, otherAddress] = await ethers.getSigners();
+  const factory = await ethers.getContractFactory("RPGGame", owner);
+  const contract = await upgrades.deployProxy(factory, [], {
+    initializer: "initialize",
+  });
+
+  await contract.deployed();
+
+  return { factory, contract, owner, otherAddress };
+}
 
 describe("RPG Game contract > As Owner", function () {
   it("only the owner should be able to generate a boss", async function () {
     // given
-    const [owner, otherAddress] = await ethers.getSigners();
-    const factory = await ethers.getContractFactory("RPGGame", owner);
-    const contract = await factory.deploy();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const name = faker.name.firstName();
@@ -39,9 +48,7 @@ describe("RPG Game contract > As Owner", function () {
 
   it("should refuse boss creationg not being called by the contract owner", async function () {
     // given
-    const [owner, otherAddress] = await ethers.getSigners();
-    const factory = await ethers.getContractFactory("RPGGame", owner);
-    const contract = await factory.deploy();
+    const { contract, otherAddress } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const name = faker.name.firstName();
@@ -69,22 +76,10 @@ describe("RPG Game contract > As Owner", function () {
   });
 });
 
-async function deployBossFixture() {
-  const [owner, otherAddress] = await ethers.getSigners();
-  const factory = await ethers.getContractFactory("RPGGame", owner);
-  const contract = await factory.deploy();
-
-  await contract.deployed();
-
-  return { factory, contract, owner, otherAddress };
-}
-
 describe("RPG Game contract > Character Creation > As User I", function () {
   it("should be able to generate a character", async function () {
     // given
-    const [owner] = await ethers.getSigners();
-    const factory = await ethers.getContractFactory("RPGGame");
-    const contract = await factory.deploy();
+    const { contract, owner } = await deployTestFixture();
 
     const name = faker.name.firstName();
 
@@ -100,9 +95,7 @@ describe("RPG Game contract > Character Creation > As User I", function () {
 
   it("should not be able to generate more than one character", async function () {
     // given
-    const [owner] = await ethers.getSigners();
-    const factory = await ethers.getContractFactory("RPGGame");
-    const contract = await factory.deploy();
+    const { contract } = await deployTestFixture();
 
     const name = faker.name.firstName();
     await contract.createCharacter(name);
@@ -118,7 +111,7 @@ describe("RPG Game contract > Character Creation > As User I", function () {
 
   it("should return nothing as active boss if no boss is active", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract } = await deployBossFixture();
+    const { contract } = await deployTestFixture();
 
     // and that I have another character ready to heal
     const name = faker.name.firstName();
@@ -141,7 +134,7 @@ describe("RPG Game contract > Character Creation > As User I", function () {
 describe("RPG Game contract > Normal Attacks > As User I", function () {
   it("should be able to attack and active boss and not kill it", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner } = await deployBossFixture();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -174,7 +167,7 @@ describe("RPG Game contract > Normal Attacks > As User I", function () {
 
   it("should be able to attack and active boss and kill it", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner } = await deployBossFixture();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -216,7 +209,7 @@ describe("RPG Game contract > Normal Attacks > As User I", function () {
 describe("RPG Game contract > Healing > As User I", function () {
   it("should be able to heal other players", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner, otherAddress } = await deployBossFixture();
+    const { contract, owner, otherAddress } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -252,7 +245,7 @@ describe("RPG Game contract > Healing > As User I", function () {
 
   it("should not be able to heal alive players", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner, otherAddress } = await deployBossFixture();
+    const { contract, owner, otherAddress } = await deployTestFixture();
 
     // and that I have an alive character
     const name = faker.name.firstName();
@@ -273,7 +266,7 @@ describe("RPG Game contract > Healing > As User I", function () {
 
   it("should not be able to self healing", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner } = await deployBossFixture();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -308,7 +301,7 @@ describe("RPG Game contract > Healing > As User I", function () {
 describe("RPG Game contract > Reward Claim > As User I", function () {
   it("should be able to claim rewards for a dead boss", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner } = await deployBossFixture();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -348,7 +341,7 @@ describe("RPG Game contract > Reward Claim > As User I", function () {
 
   it("should not be able to claim rewards when the boss is still alive", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner } = await deployBossFixture();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -380,7 +373,7 @@ describe("RPG Game contract > Reward Claim > As User I", function () {
 
   it("should not be able to claim rewards when never fought with the boss", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner, otherAddress } = await deployBossFixture();
+    const { contract, owner, otherAddress } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -414,7 +407,7 @@ describe("RPG Game contract > Reward Claim > As User I", function () {
 
   it("should not be able to claim rewards twice", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner } = await deployBossFixture();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -449,7 +442,7 @@ describe("RPG Game contract > Reward Claim > As User I", function () {
 describe("RPG Game contract > Spell Attack > As User I", function () {
   it("should be able to cast a spell on active boss and kill it", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner } = await deployBossFixture();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();
@@ -490,7 +483,7 @@ describe("RPG Game contract > Spell Attack > As User I", function () {
 
   it("should not be able to cast a spell if no level", async function () {
     // given that I have a deployed boss with enough hp
-    const { contract, owner } = await deployBossFixture();
+    const { contract, owner } = await deployTestFixture();
 
     const punkId = "0x16F5A35647D6F03D5D3da7b35409D65ba03aF3B2";
     const bossName = faker.name.firstName();

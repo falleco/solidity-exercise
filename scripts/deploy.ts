@@ -1,13 +1,14 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 async function main() {
-  // We get the contract to deploy
-  const Factory = await ethers.getContractFactory("RPGGame");
+  const GameFactory = await ethers.getContractFactory("RPGGame");
 
-  // We deploy the contract
-  const contract = await Factory.deploy(/* ...args */);
+  console.log("Deploying The RPGGame...");
+  const contract = await upgrades.deployProxy(GameFactory, [], {
+    initializer: "initialize",
+  });
+
   await contract.deployed();
-
   console.log("Contract deployed to:", contract.address);
 }
 
